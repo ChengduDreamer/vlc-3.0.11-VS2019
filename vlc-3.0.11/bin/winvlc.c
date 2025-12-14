@@ -50,6 +50,38 @@ void* InstallCrashHandler( const wchar_t* crashdump_path );
 void ReleaseCrashHandler( void* handler );
 #endif
 
+// 创建控制台窗口
+bool CreateDebugConsole()
+{
+    // 分配一个新的控制台
+    if (!AllocConsole()) {
+        return false;
+    }
+
+    // 重定向标准输入输出
+    FILE* fp;
+    freopen_s(&fp, "CONOUT$", "w", stdout);
+    freopen_s(&fp, "CONOUT$", "w", stderr);
+    freopen_s(&fp, "CONIN$", "r", stdin);
+
+    // 设置控制台标题
+    SetConsoleTitle(L"调试控制台");
+
+    // 设置控制台编码为UTF-8（Windows 10+）
+    SetConsoleOutputCP(CP_UTF8);
+
+    return true;
+}
+
+// 关闭控制台窗口
+void CloseDebugConsole()
+{
+    fclose(stdout);
+    fclose(stderr);
+    fclose(stdin);
+    FreeConsole();
+}
+
 static char *FromWide (const wchar_t *wide)
 {
     size_t len;
@@ -119,6 +151,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     LPSTR lpCmdLine,
                     int nCmdShow )
 {
+    CreateDebugConsole();
     int argc;
 
     /* VLC does not change the thread locale, so gettext/libintil will use the
@@ -280,5 +313,6 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
     free(argv);
 #endif
     (void)hInstance; (void)hPrevInstance; (void)lpCmdLine; (void)nCmdShow;
+    printf("main end...\n");
     return 0;
 }

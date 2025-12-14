@@ -267,6 +267,10 @@ void FileClose (vlc_object_t * p_this)
 
 static ssize_t Read (stream_t *p_access, void *p_buffer, size_t i_len)
 {
+    /*
+    播放http 视频走的这里, 播放本地视频没有走这里
+    */
+    printf("file.c, p_access->prz_url = %s\n", p_access->psz_url);
     access_sys_t *p_sys = p_access->p_sys;
     int fd = p_sys->fd;
 

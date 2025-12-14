@@ -70,7 +70,10 @@ static ssize_t ThreadRead(stream_t *stream, void *buf, size_t length)
 
     vlc_mutex_unlock(&sys->lock);
     assert(length > 0);
-
+    /*
+    播放http 视频走的这里, 播放本地视频没有走这里
+    */
+    printf("stream->prz_url = %s\n", stream->psz_url);
     ssize_t val = vlc_stream_ReadPartial(stream->p_source, buf, length);
 
     vlc_mutex_lock(&sys->lock);
