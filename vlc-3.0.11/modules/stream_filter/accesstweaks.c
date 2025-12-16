@@ -93,6 +93,7 @@ static int Control( stream_t *p_stream, int i_query, va_list args )
 
 static ssize_t Read( stream_t *s, void *buffer, size_t i_read )
 {
+    printf("accesstweaks.c, Read, s->stream.psz_url = %s \n", s->psz_url);
     return vlc_stream_Read( s->p_source, buffer, i_read );
 }
 

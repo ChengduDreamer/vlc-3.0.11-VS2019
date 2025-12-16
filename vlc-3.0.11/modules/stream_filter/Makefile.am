@@ -53,3 +53,6 @@ stream_filter_LTLIBRARIES += libadf_plugin.la
 
 libskiptags_plugin_la_SOURCES = stream_filter/skiptags.c
 stream_filter_LTLIBRARIES += libskiptags_plugin.la
+
+libpreprocess_plugin_la_SOURCES = stream_filter/preprocess.c
+stream_filter_LTLIBRARIES += libpreprocess_plugin.la
