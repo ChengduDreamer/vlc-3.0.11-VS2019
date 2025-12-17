@@ -41,7 +41,9 @@ static ssize_t Read(stream_t *s, void *buf, size_t len)
     for (ssize_t i = 0; i < ret; ++i)
     {
         /* 示例：XOR，占位用 */
-        p[i] ^= 0xAA;
+        //p[i] ^= 0xAA;
+
+        //p[i] ^= 0x30;
     }
     /* -------------------------------- */
 
@@ -112,7 +114,7 @@ vlc_module_begin()
     set_subcategory(SUBCAT_INPUT_STREAM_FILTER)
 
     /*关键：比 skiptags(30) 高，确保先解密 */
-    set_capability("stream_filter", 50)
+    set_capability("stream_filter", 100)
 
     set_description(N_("Sample decryption stream filter"))
     set_callbacks(Open, Close)

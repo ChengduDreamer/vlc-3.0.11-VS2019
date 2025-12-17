@@ -64,11 +64,20 @@
 #include <vlc_url.h>
 #include <vlc_interrupt.h>
 
+#define CHACHA20_IMPLEMENTATION
+#include "chacha20.h"
+
+#define CHACHA_BLOCK_SIZE 64
+
 struct access_sys_t
 {
     int fd;
 
     bool b_pace_control;
+
+    uint64_t offset;          // 当前文件逻辑偏移
+    uint8_t  key[32];
+    uint8_t  nonce[12];
 };
 
 #if !defined (_WIN32) && !defined (__OS2__)
@@ -214,6 +223,25 @@ int FileOpen( vlc_object_t *p_this )
     p_access->p_sys = p_sys;
     p_sys->fd = fd;
 
+    p_sys->offset = 0;
+
+    uint8_t demo_key[32] = {
+        0x21, 0x7A, 0x93, 0xC4, 0x58, 0xE1, 0x6F, 0x0B,
+        0xAD, 0x4E, 0xD2, 0x39, 0xF7, 0x81, 0x5C, 0x10,
+        0x66, 0xB9, 0x03, 0xAE, 0x2D, 0x90, 0x74, 0xC8,
+        0x1F, 0xEA, 0x55, 0x8D, 0xA0, 0xCB, 0x36, 0x99
+    };
+
+    uint8_t demo_nonce[12] = {
+        0x10, 0x32, 0x54, 0x76,
+        0x98, 0xBA, 0xDC, 0xFE,
+        0x01, 0x23, 0x45, 0x67
+    };
+
+    memcpy(p_sys->key, demo_key, 32);
+    memcpy(p_sys->nonce, demo_nonce, 12);
+
+
     if (S_ISREG (st.st_mode) || S_ISBLK (st.st_mode))
     {
         p_access->pf_seek = FileSeek;
@@ -292,7 +320,34 @@ static ssize_t Read (stream_t *p_access, void *p_buffer, size_t i_len)
 
         msg_Err (p_access, "read error: %s", vlc_strerror_c(errno));
         val = 0;
+
+        return val;
     }
+
+
+    uint8_t* buf = (uint8_t*)p_buffer;
+    uint64_t offset = p_sys->offset;
+
+    /* === ChaCha20 Random-Access 解密 === */
+
+    uint32_t counter = (uint32_t)(offset / CHACHA_BLOCK_SIZE);
+    size_t block_offset = (size_t)(offset % CHACHA_BLOCK_SIZE);
+
+    ChaCha20_Ctx ctx;
+    ChaCha20_init(&ctx, p_sys->key, p_sys->nonce, counter);
+
+    /* 丢弃 block_offset 之前的 keystream */
+    if (block_offset > 0)
+    {
+        uint8_t tmp[CHACHA_BLOCK_SIZE];
+        ChaCha20_xor(&ctx, tmp, block_offset);
+    }
+
+    /* 解密 */
+    ChaCha20_xor(&ctx, buf, val);
+
+    /* 更新 offset */
+    p_sys->offset += val;
 
     return val;
 }
@@ -306,6 +361,9 @@ static int FileSeek (stream_t *p_access, uint64_t i_pos)
 
     if (lseek(sys->fd, i_pos, SEEK_SET) == (off_t)-1)
         return VLC_EGENERIC;
+
+    sys->offset = i_pos;
+
     return VLC_SUCCESS;
 }
 
