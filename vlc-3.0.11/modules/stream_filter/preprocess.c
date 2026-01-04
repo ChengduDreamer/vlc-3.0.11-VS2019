@@ -21,14 +21,12 @@ struct decrypt_sys_t
 };
 
 /* -------------------------------------------------------------------------
- * Read
+ * Read   经过测试，这里解密没有效果(2025-1-4)
  * ------------------------------------------------------------------------- */
 
 static ssize_t Read(stream_t *s, void *buf, size_t len)
 {
-
-    printf("preprocess.c Read url = %s, len =  %zu bytes\n", s->psz_url, len);
-
+    //printf("preprocess.c Read url = %s, len =  %zu bytes\n", s->psz_url, len);
 
     struct decrypt_sys_t *sys = s->p_sys;
 

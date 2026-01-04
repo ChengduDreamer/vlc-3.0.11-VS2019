@@ -292,7 +292,47 @@ void FileClose (vlc_object_t * p_this)
     vlc_close (p_sys->fd);
 }
 
+#if 1
+/* 播放常规视频*/
+static ssize_t Read(stream_t* p_access, void* p_buffer, size_t i_len)
+{
+    /*
+    播放本地视频走这里
+    */
 
+    access_sys_t* p_sys = p_access->p_sys;
+    int fd = p_sys->fd;
+
+    ssize_t val = vlc_read_i11e(fd, p_buffer, i_len);
+
+    printf("file.c, p_access->prz_url = %s, offset = %llu, val = %llu\n", p_access->psz_url, p_sys->offset, val);
+
+
+    p_access->p_source;
+
+    if (val < 0)
+    {
+        switch (errno)
+        {
+        case EINTR:
+        case EAGAIN:
+            return -1;
+        }
+
+        msg_Err(p_access, "read error: %s", vlc_strerror_c(errno));
+        val = 0;
+    }
+
+    /* 更新 offset */
+    p_sys->offset += val;
+
+    return val;
+}
+#endif
+
+
+#if 0
+/* 播放加密视频, 解密chacha20逻辑 */
 static ssize_t Read (stream_t *p_access, void *p_buffer, size_t i_len)
 {
     /*
@@ -304,7 +344,7 @@ static ssize_t Read (stream_t *p_access, void *p_buffer, size_t i_len)
 
     ssize_t val = vlc_read_i11e (fd, p_buffer, i_len);
 
-    printf("file.c, p_access->prz_url = %s, val = %llu\n", p_access->psz_url, val);
+    printf("file.c, p_access->prz_url = %s, offset = %llu, val = %llu\n", p_access->psz_url, p_sys->offset, val);
     
 
     p_access->p_source;
@@ -351,6 +391,7 @@ static ssize_t Read (stream_t *p_access, void *p_buffer, size_t i_len)
 
     return val;
 }
+#endif
 
 /*****************************************************************************
  * Seek: seek to a specific location in a file

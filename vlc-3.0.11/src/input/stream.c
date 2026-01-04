@@ -445,7 +445,7 @@ ssize_t vlc_stream_ReadPartial(stream_t *s, void *buf, size_t len)
     ssize_t ret;
 
 
-    printf("stream.c, vlc_stream_ReadPartial, priv->stream.psz_url = %s, priv->offset = %llu\n", priv->stream.psz_url, priv->offset);
+    //printf("stream.c, vlc_stream_ReadPartial, priv->stream.psz_url = %s, priv->offset = %llu\n", priv->stream.psz_url, priv->offset);
 
 
     ret = vlc_stream_CopyBlock(&priv->peek, buf, len);
