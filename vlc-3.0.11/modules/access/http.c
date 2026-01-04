@@ -455,6 +455,8 @@ static ssize_t Read( stream_t *p_access, void *p_buffer, size_t i_len )
         p_sys->i_icy_offset = p_sys->offset + p_sys->i_icy_meta;
     }
 
+    printf("http.c, p_access->prz_url = %s, offset = %llu, val = %ld\n", p_access->psz_url, p_sys->offset, i_read);
+
     return i_read;
 }
 

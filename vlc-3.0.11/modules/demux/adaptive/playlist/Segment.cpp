@@ -35,6 +35,7 @@
 #include "../http/HTTPConnectionManager.h"
 #include "../http/Downloader.hpp"
 #include <cassert>
+#include <iostream>
 
 using namespace adaptive::http;
 using namespace adaptive::playlist;
@@ -64,7 +65,7 @@ bool ISegment::prepareChunk(SharedResources *res, SegmentChunk *chunk, BaseRepre
 {
     CommonEncryption enc = encryption;
     enc.mergeWith(rep->intheritEncryption());
-
+    /*在这里构建解密逻辑*/
     if(enc.method != CommonEncryption::Method::NONE)
     {
         CommonEncryptionSession *encryptionSession = new CommonEncryptionSession();
@@ -82,6 +83,10 @@ SegmentChunk* ISegment::toChunk(SharedResources *res, AbstractConnectionManager 
                                 size_t index, BaseRepresentation *rep)
 {
     const std::string url = getUrlSegment().toString(index, rep);
+
+    // 这里能打印m4s文件的url
+    std::cout << "ISegment::toChunk url = " << url << std::endl;
+
     HTTPChunkBufferedSource *source = new (std::nothrow) HTTPChunkBufferedSource(url, connManager,
                                                                                  rep->getAdaptationSet()->getID());
     if( source )

@@ -438,21 +438,26 @@ static ssize_t vlc_stream_ReadRaw(stream_t *s, void *buf, size_t len)
     return 0;
 }
 
+
+/*
+播放网络 http dash视频的时候，无法获取到文件名
+*/
 ssize_t vlc_stream_ReadPartial(stream_t *s, void *buf, size_t len)
 {
 
     stream_priv_t *priv = (stream_priv_t *)s;
     ssize_t ret;
 
-
-    //printf("stream.c, vlc_stream_ReadPartial, priv->stream.psz_url = %s, priv->offset = %llu\n", priv->stream.psz_url, priv->offset);
-
-
     ret = vlc_stream_CopyBlock(&priv->peek, buf, len);
     if (ret >= 0)
     {
         priv->offset += ret;
         assert(ret <= (ssize_t)len);
+        
+        /*
+        printf("stream.c, vlc_stream_ReadPartial, priv->stream.psz_url = %s, psz_name = %s, psz_filepath = %s, priv->offset = %llu, ret = %ld\n",
+            priv->stream.psz_url, priv->stream.psz_name, priv->stream.psz_filepath, priv->offset, ret);
+        */
         return ret;
     }
 
@@ -462,6 +467,11 @@ ssize_t vlc_stream_ReadPartial(stream_t *s, void *buf, size_t len)
     if (ret == 0)
         priv->eof = len != 0;
     assert(ret <= (ssize_t)len);
+
+    /*
+    printf("stream.c, vlc_stream_ReadPartial, priv->stream.psz_url = %s, psz_name = %s, psz_filepath = %s, priv->offset = %llu, ret = %ld\n",
+        priv->stream.psz_url, priv->stream.psz_name, priv->stream.psz_filepath, priv->offset, ret);
+    */
     return ret;
 }
 

@@ -72,6 +72,10 @@ static ssize_t ThreadRead(stream_t *stream, void *buf, size_t length)
     assert(length > 0);
     /*
     播放http 视频走的这里, 播放本地视频没有走这里
+    但是 播放 mp4 dash 切片文件的是，这里只打印了 output.mpd 文件
+    再尝试去去 G:\code\hub\vlc-3.0.11-VS2019\vlc-3.0.11\modules\demux\dash 找下
+    结果 http dash文件 确实走了  G:\code\hub\vlc-3.0.11-VS2019\vlc-3.0.11\modules\demux\dash
+    然后再判断下 本地的 dash文件 是不是也走 G:\code\hub\vlc-3.0.11-VS2019\vlc-3.0.11\modules\demux\dash ？
     */
     printf("prefetch.c stream->prz_url = %s\n", stream->psz_url);
     ssize_t val = vlc_stream_ReadPartial(stream->p_source, buf, length);

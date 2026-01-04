@@ -305,8 +305,8 @@ static ssize_t Read(stream_t* p_access, void* p_buffer, size_t i_len)
 
     ssize_t val = vlc_read_i11e(fd, p_buffer, i_len);
 
-    printf("file.c, p_access->prz_url = %s, offset = %llu, val = %llu\n", p_access->psz_url, p_sys->offset, val);
 
+    printf("file.c, p_access->prz_url = %s, offset = %llu, val = %ld\n", p_access->psz_url, p_sys->offset, val);
 
     p_access->p_source;
 
