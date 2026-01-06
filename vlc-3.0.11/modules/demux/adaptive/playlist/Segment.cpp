@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  * Segment.cpp
  *****************************************************************************
  * Copyright (C) 2010 - 2011 Klagenfurt University
@@ -36,12 +36,23 @@
 #include "../http/Downloader.hpp"
 #include <cassert>
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 
 using namespace adaptive::http;
 using namespace adaptive::playlist;
 
 const int ISegment::SEQUENCE_INVALID = 0;
 const int ISegment::SEQUENCE_FIRST   = 1;
+
+#include <algorithm>
+#include <string>
+
+bool endsWith(const std::string& str, const std::string& suffix) {
+    if (suffix.size() > str.size()) return false;
+    return std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+}
+
 
 ISegment::ISegment(const ICanonicalUrl *parent):
     ICanonicalUrl( parent ),
@@ -61,15 +72,40 @@ ISegment::~ISegment()
 {
 }
 
+#if 0
 bool ISegment::prepareChunk(SharedResources *res, SegmentChunk *chunk, BaseRepresentation *rep)
 {
     CommonEncryption enc = encryption;
     enc.mergeWith(rep->intheritEncryption());
-    /*ÔÚÕâÀï¹¹½¨½âÃÜÂß¼­*/
+    /*åœ¨è¿™é‡Œæ„å»ºè§£å¯†é€»è¾‘*/
+    std::cout << "ISegment::prepareChunk enc.method:" << enc.method << std::endl;
     if(enc.method != CommonEncryption::Method::NONE)
     {
         CommonEncryptionSession *encryptionSession = new CommonEncryptionSession();
         if(!encryptionSession->start(res, enc))
+        {
+            delete encryptionSession;
+            return false;
+        }
+        chunk->setEncryptionSession(encryptionSession);
+    }
+    return true;
+}
+#endif
+
+bool ISegment::prepareChunk(SharedResources* res, SegmentChunk* chunk, BaseRepresentation* rep) {
+    CommonEncryption enc = encryption;
+    enc.mergeWith(rep->intheritEncryption());
+    /*åœ¨è¿™é‡Œæ„å»ºè§£å¯†é€»è¾‘*/
+    std::cout << "ISegment::prepareChunk enc.method:" << enc.method << std::endl;
+
+    
+    if (endsWith(temp_test_url_, "m4s")) {
+
+        std::cout << "ISegment::prepareChunk temp_test_url_ = " << temp_test_url_ << std::endl;
+
+        CommonEncryptionSession* encryptionSession = new YKChacha20EncryptionSession();
+        if (!encryptionSession->start(res, enc))
         {
             delete encryptionSession;
             return false;
@@ -84,8 +120,10 @@ SegmentChunk* ISegment::toChunk(SharedResources *res, AbstractConnectionManager 
 {
     const std::string url = getUrlSegment().toString(index, rep);
 
-    // ÕâÀïÄÜ´òÓ¡m4sÎÄ¼şµÄurl
+    // è¿™é‡Œèƒ½æ‰“å°m4sæ–‡ä»¶çš„url
     std::cout << "ISegment::toChunk url = " << url << std::endl;
+
+    temp_test_url_ = url;
 
     HTTPChunkBufferedSource *source = new (std::nothrow) HTTPChunkBufferedSource(url, connManager,
                                                                                  rep->getAdaptationSet()->getID());

@@ -1,4 +1,4 @@
-/*****************************************************************************
+﻿/*****************************************************************************
  * CommonEncryption.cpp
  *****************************************************************************
  * Copyright (C) 2015-2019 VLC authors and VideoLAN
@@ -21,6 +21,8 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+
+#include <iostream>
 
 #include "CommonEncryption.hpp"
 #include "Keyring.hpp"
@@ -140,5 +142,78 @@ size_t CommonEncryptionSession::decrypt(void *inputdata, size_t inputbytes, bool
         inputbytes = 0;
     }
 
+    return inputbytes;
+}
+
+
+
+YKChacha20EncryptionSession::YKChacha20EncryptionSession()
+{
+    
+}
+
+
+YKChacha20EncryptionSession::~YKChacha20EncryptionSession()
+{
+    close();
+}
+
+bool YKChacha20EncryptionSession::start(SharedResources* res, const CommonEncryption& enc)
+{
+    offset_ = 0;
+    started_ = true;
+
+    // key / nonce 你现在是“写死”的
+    // 实际项目建议：rep_id + segment_seq 派生
+    static const uint8_t key[32] = {
+        0x21, 0x7A, 0x93, 0xC4, 0x58, 0xE1, 0x6F, 0x0B,
+        0xAD, 0x4E, 0xD2, 0x39, 0xF7, 0x81, 0x5C, 0x10,
+        0x66, 0xB9, 0x03, 0xAE, 0x2D, 0x90, 0x74, 0xC8,
+        0x1F, 0xEA, 0x55, 0x8D, 0xA0, 0xCB, 0x36, 0x99
+    };
+
+    static const uint8_t nonce[12] = {
+        0x10, 0x32, 0x54, 0x76,
+        0x98, 0xBA, 0xDC, 0xFE,
+        0x01, 0x23, 0x45, 0x67
+    };
+
+    //ChaCha20_init(&ctx_, key, nonce, /*counter=*/0);
+
+    std::cout << "YKChacha20EncryptionSession::start ChaCha20_init" << std::endl;
+
+    return true;
+}
+
+void YKChacha20EncryptionSession::close()
+{
+    started_ = false;
+    offset_ = 0;
+}
+
+
+static const uint8_t XOR_KEY[] = {
+    0x13, 0x37, 0xC0, 0xDE, 0x42, 0x99, 0xAA, 0x55
+};
+
+void xor_crypt(uint8_t* data, size_t len)
+{
+    for (size_t i = 0; i < len; ++i)
+        data[i] ^= XOR_KEY[i % sizeof(XOR_KEY)];
+}
+
+size_t YKChacha20EncryptionSession::decrypt(void* inputdata, size_t inputbytes, bool last)
+{
+    if (!started_ || inputbytes == 0) {
+        return 0;
+    }
+
+    //ChaCha20_xor(&ctx_, static_cast<uint8_t*>(inputdata), inputbytes);
+
+
+
+    xor_crypt(static_cast<uint8_t*>(inputdata), inputbytes);
+
+    offset_ += inputbytes;
     return inputbytes;
 }

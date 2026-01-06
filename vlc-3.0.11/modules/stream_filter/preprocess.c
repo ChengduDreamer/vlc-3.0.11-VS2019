@@ -93,7 +93,7 @@ static int Open(vlc_object_t *obj)
     s->pf_seek = Seek;
     s->pf_control = Control;
 
-    msg_Info(s, "decrypt stream filter enabled");
+    //msg_Info(s, "decrypt stream filter enabled");
     return VLC_SUCCESS;
 }
 

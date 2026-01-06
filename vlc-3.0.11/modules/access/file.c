@@ -64,8 +64,8 @@
 #include <vlc_url.h>
 #include <vlc_interrupt.h>
 
-#define CHACHA20_IMPLEMENTATION
-#include "chacha20.h"
+//#define CHACHA20_IMPLEMENTATION
+//#include "chacha20.h"
 
 #define CHACHA_BLOCK_SIZE 64
 

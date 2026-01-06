@@ -96,6 +96,8 @@ namespace adaptive
                 uint64_t                sequence;
                 static const int        SEQUENCE_INVALID;
                 static const int        SEQUENCE_FIRST;
+
+                std::string temp_test_url_;
         };
 
         class Segment : public ISegment

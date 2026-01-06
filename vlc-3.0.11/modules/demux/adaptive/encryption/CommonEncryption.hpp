@@ -22,6 +22,8 @@
 
 #include <vector>
 #include <string>
+#define CHACHA20_IMPLEMENTATION
+//#include "chacha20.h"
 
 namespace adaptive
 {
@@ -39,6 +41,7 @@ namespace adaptive
                     NONE,
                     AES_128,
                     AES_SAMPLE,
+                    CHACHA_20,
                 } method;
                 std::string uri;
                 std::vector<unsigned char> iv;
@@ -50,14 +53,33 @@ namespace adaptive
                 CommonEncryptionSession();
                 ~CommonEncryptionSession();
 
-                bool start(SharedResources *, const CommonEncryption &);
-                void close();
-                size_t decrypt(void *, size_t, bool);
+                virtual bool start(SharedResources *, const CommonEncryption &);
+                virtual void close();
+                virtual size_t decrypt(void *, size_t, bool);
 
             private:
                 std::vector<unsigned char> key;
                 CommonEncryption encryption;
                 void *ctx;
+        };
+
+        class YKChacha20EncryptionSession : public CommonEncryptionSession
+        {
+        public:
+            YKChacha20EncryptionSession();
+            ~YKChacha20EncryptionSession();
+
+            bool start(SharedResources*, const CommonEncryption&) override;
+            void close() override;
+            size_t decrypt(void*, size_t, bool) override;
+
+        private:
+            CommonEncryption encryption;
+
+            //ChaCha20_Ctx ctx_;
+            bool started_ = false;
+            uint64_t offset_ = 0;
+            
         };
     }
 }
