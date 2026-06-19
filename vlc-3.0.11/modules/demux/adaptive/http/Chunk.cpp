@@ -166,7 +166,8 @@ bool HTTPChunkSource::init(const std::string &url)
     params = ConnectionParams(url);
     params.setUseAccess(usesAccess());
 
-    if(params.getScheme() != "http" && params.getScheme() != "https")
+    if(params.getScheme() != "http" && params.getScheme() != "https" &&
+       params.getScheme() != "kkma" && params.getScheme() != "file")
         return false;
 
     if(params.getPath().empty() || params.getHostname().empty())

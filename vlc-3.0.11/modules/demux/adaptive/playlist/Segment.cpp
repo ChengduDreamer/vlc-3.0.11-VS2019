@@ -93,18 +93,18 @@ bool ISegment::prepareChunk(SharedResources *res, SegmentChunk *chunk, BaseRepre
 }
 #endif
 
+// 阶段 A:明文 kkma 链路打通——不做任何解密。
+// 旧版本按 ".m4s" 后缀触发 YKChacha20EncryptionSession(实际是 XOR 测试),
+// 会把明文 segment 再异或一遍,导致解码失败。阶段 B 引入 AES-CTR 时会改成
+// 按 enc.method == AES_CTR 触发,彻底取代后缀判断。
 bool ISegment::prepareChunk(SharedResources* res, SegmentChunk* chunk, BaseRepresentation* rep) {
     CommonEncryption enc = encryption;
     enc.mergeWith(rep->intheritEncryption());
-    /*在这里构建解密逻辑*/
-    std::cout << "ISegment::prepareChunk enc.method:" << enc.method << std::endl;
-
-    
-    if (endsWith(temp_test_url_, "m4s")) {
-
-        std::cout << "ISegment::prepareChunk temp_test_url_ = " << temp_test_url_ << std::endl;
-
-        CommonEncryptionSession* encryptionSession = new YKChacha20EncryptionSession();
+    std::cout << "ISegment::prepareChunk enc.method:" << enc.method
+              << " (stage A: no decryption)" << std::endl;
+    if (enc.method != CommonEncryption::Method::NONE)
+    {
+        CommonEncryptionSession* encryptionSession = new CommonEncryptionSession();
         if (!encryptionSession->start(res, enc))
         {
             delete encryptionSession;
