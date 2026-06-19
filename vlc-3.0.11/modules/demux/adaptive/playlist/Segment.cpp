@@ -34,6 +34,8 @@
 #include "../http/BytesRange.hpp"
 #include "../http/HTTPConnectionManager.h"
 #include "../http/Downloader.hpp"
+#include "../SharedResources.hpp"
+#include "../encryption/AesCtrSession.hpp"
 #include <cassert>
 #include <iostream>
 #include <fstream>
@@ -93,25 +95,46 @@ bool ISegment::prepareChunk(SharedResources *res, SegmentChunk *chunk, BaseRepre
 }
 #endif
 
-// 阶段 A:明文 kkma 链路打通——不做任何解密。
-// 旧版本按 ".m4s" 后缀触发 YKChacha20EncryptionSession(实际是 XOR 测试),
-// 会把明文 segment 再异或一遍,导致解码失败。阶段 B 引入 AES-CTR 时会改成
-// 按 enc.method == AES_CTR 触发,彻底取代后缀判断。
+// 阶段 B:按 ContentProtection 解析出来的 enc.method 路由解密 session。
+// 阶段 A 把"按 .m4s 后缀触发 XOR"的 hack 撤了,这里恢复成标准触发结构,
+// 并加 yk-aes-ctr 分支。设计见 PLAYBACK_LINK_PLAN.md §B.3.3 / §B.4 任务 #8。
+//
+// CommonEncryption / CommonEncryptionSession / AesCtrSession 都来自
+// adaptive::encryption,通过 Segment.h 头部的 `using namespace encryption`
+// 在 playlist namespace 内自动可见,无需在此重复 using。
 bool ISegment::prepareChunk(SharedResources* res, SegmentChunk* chunk, BaseRepresentation* rep) {
     CommonEncryption enc = encryption;
     enc.mergeWith(rep->intheritEncryption());
-    std::cout << "ISegment::prepareChunk enc.method:" << enc.method
-              << " (stage A: no decryption)" << std::endl;
-    if (enc.method != CommonEncryption::Method::NONE)
-    {
-        CommonEncryptionSession* encryptionSession = new CommonEncryptionSession();
-        if (!encryptionSession->start(res, enc))
-        {
-            delete encryptionSession;
-            return false;
-        }
-        chunk->setEncryptionSession(encryptionSession);
+
+    if (enc.method == CommonEncryption::Method::NONE) {
+        return true;  // 该流明文,无需解密
     }
+
+    CommonEncryptionSession* session = nullptr;
+    switch (enc.method) {
+    case CommonEncryption::Method::AES_CTR:
+        // yk-aes-ctr 算法族;具体 v1 / v2 / ... 由 AesCtrSession 内部按
+        // enc.algo_version switch。
+        session = new AesCtrSession(res ? res->getVlcObject() : nullptr);
+        break;
+    case CommonEncryption::Method::AES_128:
+        // VLC 现有 CENC AES-128-CBC 通用 session
+        session = new CommonEncryptionSession();
+        break;
+    default:
+        std::cout << "ISegment::prepareChunk: unsupported enc.method="
+                  << enc.method << ", playback will fail" << std::endl;
+        return false;
+    }
+
+    if (!session->start(res, enc)) {
+        std::cout << "ISegment::prepareChunk: session start failed (method="
+                  << enc.method << ", algo_version=" << enc.algo_version << ")"
+                  << std::endl;
+        delete session;
+        return false;
+    }
+    chunk->setEncryptionSession(session);
     return true;
 }
 

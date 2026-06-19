@@ -52,6 +52,26 @@ void CommonEncryption::mergeWith(const CommonEncryption &other)
         uri = other.uri;
     if(iv.empty() && !other.iv.empty())
         iv = other.iv;
+
+    // 阶段 B 起新增字段:同样按"自己空才取对方"的合并策略,保证调用方
+    // (Segment.cpp::prepareChunk)从 Representation 继承 AdaptationSet 上挂的
+    // ContentProtection 时不会丢字段。
+    if(algo_version == 0 && other.algo_version != 0)
+        algo_version = other.algo_version;
+    if(keyid.empty() && !other.keyid.empty())
+        keyid = other.keyid;
+    if(key_derive == "raw" && other.key_derive != "raw")
+        key_derive = other.key_derive;
+    if(iv_scheme == "fixed" && other.iv_scheme != "fixed")
+        iv_scheme = other.iv_scheme;
+    if(license_blob.empty() && !other.license_blob.empty())
+        license_blob = other.license_blob;
+    if(aad.empty() && !other.aad.empty())
+        aad = other.aad;
+    if(kdf_salt.empty() && !other.kdf_salt.empty())
+        kdf_salt = other.kdf_salt;
+    if(kdf_iters == 0 && other.kdf_iters != 0)
+        kdf_iters = other.kdf_iters;
 }
 
 CommonEncryptionSession::CommonEncryptionSession()

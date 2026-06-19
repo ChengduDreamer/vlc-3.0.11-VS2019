@@ -43,6 +43,8 @@
 #include "../../adaptive/tools/Helper.h"
 #include "../../adaptive/tools/Debug.hpp"
 #include "../../adaptive/tools/Conversions.hpp"
+#include "../../adaptive/encryption/YkEncryptionParser.hpp"
+#include "../../adaptive/encryption/CommonEncryption.hpp"
 #include <vlc_stream.h>
 #include <cstdio>
 #include <limits>
@@ -301,6 +303,51 @@ void    IsoffMainParser::parseAdaptationSets  (MPD *mpd, Node *periodNode, Perio
         if(adaptationSet->description.Get().empty())
             adaptationSet->description.Set(adaptationSet->getMimeType());
 #endif
+
+        // ---- yk-* ContentProtection 解析(阶段 B 任务 #7) ----
+        // 我们只识别 schemeIdUri 以 "urn:com-yk:" 开头的 ContentProtection;
+        // 其它 scheme 交给上游已有的处理(本仓库目前没接 CENC,所以是 NOOP)。
+        // 解析得到的 CommonEncryption 挂在 AdaptationSet 上,Representation 通过
+        // intheritEncryption() / mergeWith() 自动继承。
+        {
+            std::vector<adaptive::xml::Node *> cp_nodes =
+                adaptive::xml::DOMHelper::getChildElementByTagName(*it, "ContentProtection");
+            for (adaptive::xml::Node *cp : cp_nodes)
+            {
+                adaptive::encryption::CommonEncryption enc;
+                using R = adaptive::encryption::YkParseResult;
+                R r = adaptive::encryption::YkEncryptionParser::ParseFromContentProtection(cp, enc);
+                switch (r) {
+                case R::Ok:
+                    adaptationSet->setEncryption(enc);
+                    break;
+                case R::NotOurs:
+                    /* 别人的 scheme,跳过即可 */
+                    break;
+                case R::UnknownFamily:
+                    msg_Warn(VLC_OBJECT(p_stream),
+                             "yk: unknown algorithm family in ContentProtection "
+                             "(schemeIdUri=%s); skip",
+                             cp->getAttributeValue("schemeIdUri").c_str());
+                    break;
+                case R::VersionMismatch:
+                    msg_Warn(VLC_OBJECT(p_stream),
+                             "yk: ContentProtection algoVersion attr does not match "
+                             "schemeIdUri version; skip (schemeIdUri=%s)",
+                             cp->getAttributeValue("schemeIdUri").c_str());
+                    break;
+                case R::InvalidIv:
+                    msg_Warn(VLC_OBJECT(p_stream),
+                             "yk: ContentProtection has invalid IV hex; skip");
+                    break;
+                case R::Malformed:
+                    msg_Warn(VLC_OBJECT(p_stream),
+                             "yk: malformed ContentProtection; skip");
+                    break;
+                }
+                if (r == R::Ok) break;  // 一个 AdaptationSet 一条加密元数据;v1 不支持多算法叠加
+            }
+        }
 
         parseSegmentInformation(mpd, *it, adaptationSet, &nextid);
 

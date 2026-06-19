@@ -46,11 +46,15 @@ namespace adaptive
             AuthStorage *getAuthStorage();
             Keyring     *getKeyring();
             AbstractConnectionManager *getConnManager();
+            /* 阶段 B 起新增:让加密 session 等能从这里拿 vlc_object_t,
+             * 用于 msg_*、var_Inherit*、子模块构造。 */
+            vlc_object_t *getVlcObject() const;
 
         private:
             AuthStorage *authStorage;
             Keyring *encryptionKeyring;
             AbstractConnectionManager *connManager;
+            vlc_object_t *p_obj;
     };
 }
 

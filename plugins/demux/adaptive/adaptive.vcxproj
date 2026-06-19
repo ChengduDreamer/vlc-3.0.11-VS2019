@@ -44,6 +44,9 @@
     <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\playlist\Url.cpp" />
     <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\encryption\CommonEncryption.cpp" />
     <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\encryption\Keyring.cpp" />
+    <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\encryption\IKeyProvider.cpp" />
+    <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\encryption\AesCtrSession.cpp" />
+    <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\encryption\YkEncryptionParser.cpp" />
     <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\logic\AbstractAdaptationLogic.cpp" />
     <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\logic\AlwaysBestAdaptationLogic.cpp" />
     <ClCompile Include="..\..\..\vlc-3.0.11\modules\demux\adaptive\logic\AlwaysLowestAdaptationLogic.cpp" />

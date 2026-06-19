@@ -145,6 +145,14 @@ vlc_module_begin ()
                      ADAPT_MAXBUFFER_TEXT, NULL, true );
         add_integer( "adaptive-lowlatency", -1, ADAPT_LOWLATENCY_TEXT, ADAPT_LOWLATENCY_LONGTEXT, true );
             change_integer_list(rgi_latency, ppsz_latency)
+        /* yk-aes-key: 阶段 B 任务 #9。十六进制字符串(v1=32 字符=16 字节 AES-128)。
+         * 用法:vlc.exe --yk-aes-key=<hex> <playlist.mpd>
+         * 详见 PLAYBACK_LINK_PLAN.md §B.3.4 / §B.6 安全约束。 */
+        add_string( "yk-aes-key", "",
+                    "yk AES key (hex)",
+                    "Hex-encoded AES key for urn:com-yk:aes-ctr playback. "
+                    "Stage B v1 expects 32 hex chars (AES-128). DO NOT use in production.",
+                    true )
         set_callbacks( Open, Close )
 vlc_module_end ()
 

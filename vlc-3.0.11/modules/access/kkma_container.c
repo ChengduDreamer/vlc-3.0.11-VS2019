@@ -42,6 +42,12 @@ struct kkma_container
     uint64_t      index_offset;
     uint32_t      entry_count;
     kkma_entry_t *entries;     /* 长度 = entry_count */
+
+    /* 性能优化:adaptive 顺序读 segment 时,连续 kkma_read_entry 调用之间
+     * 文件位置已经对齐,不需要 fseek。这个字段记 fp 当前真实位置,
+     * 调用方请求 entry->offset+pos 与之相等时跳过 fseek。
+     * 任何会改 fp 位置的操作必须更新它。 */
+    int64_t       fp_pos;
 };
 
 /* ---------- 小端序读取辅助 ---------- */
@@ -221,11 +227,19 @@ int64_t kkma_read_entry(kkma_container_t *c, const kkma_entry_t *entry,
     uint64_t remaining = entry->length - pos;
     size_t   to_read   = (want_len < remaining) ? want_len : (size_t)remaining;
 
-    if (fseeko(c->fp, (int64_t)(entry->offset + pos), SEEK_SET) != 0)
-        return -1;
+    /* 性能优化:VLC adaptive 顺序读 segment 时,连续两次调用之间 fp 位置
+     * 已经对齐(上次读完正好停在这次的起点)。fseeko 即使是 no-op 也会
+     * 调用 stdio 的内部 flush + lseek,有可观开销;比对 fp_pos 跳过即可。 */
+    const int64_t want_abs = (int64_t)(entry->offset + pos);
+    if (c->fp_pos != want_abs) {
+        if (fseeko(c->fp, want_abs, SEEK_SET) != 0)
+            return -1;
+        c->fp_pos = want_abs;
+    }
 
     size_t got = fread(buf, 1, to_read, c->fp);
     if (got == 0 && ferror(c->fp))
         return -1;
+    c->fp_pos += (int64_t)got;
     return (int64_t)got;
 }

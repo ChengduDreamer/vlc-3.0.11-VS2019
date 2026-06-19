@@ -32,6 +32,7 @@ using namespace adaptive;
 
 SharedResources::SharedResources(vlc_object_t *obj, bool local)
 {
+    p_obj = obj;
     authStorage = new AuthStorage(obj);
     encryptionKeyring = new Keyring(obj);
     HTTPConnectionManager *m = new HTTPConnectionManager(obj, authStorage);
@@ -60,4 +61,9 @@ Keyring * SharedResources::getKeyring()
 AbstractConnectionManager * SharedResources::getConnManager()
 {
     return connManager;
+}
+
+vlc_object_t * SharedResources::getVlcObject() const
+{
+    return p_obj;
 }
