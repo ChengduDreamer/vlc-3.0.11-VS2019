@@ -57,6 +57,10 @@ namespace adaptive
             BaseRepresentation *rep;
             CommonEncryptionSession *encryptionSession;
             size_t       segment_index = 0;
+            /* v2:缓存 rep_id(Representation id 转整数)。整个 segment 生命周期不变,
+             * 避免每次 decrypt 都 rep->getID().str() + strtoul(热路径字符串构造)。 */
+            uint32_t     cached_rep_id_ = 0;
+            bool         rep_id_cached_ = false;
         };
 
     }

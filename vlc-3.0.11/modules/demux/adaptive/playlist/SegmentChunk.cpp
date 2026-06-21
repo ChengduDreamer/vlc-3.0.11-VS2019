@@ -56,15 +56,18 @@ bool SegmentChunk::decrypt(block_t **pp_block)
         // 阶段 C v2:把当前 segment 上下文(rep_id + 序号)设给 session,
         // 供 per-segment IV 派生。rep_id 取 Representation 的 id 字符串转整数
         // (MPD 里 id="0"/"1");session 不需要时(v1/AES_128)基类空实现忽略。
-        // setSegmentContext 本身只存值(廉价),真正的 setctr 由 session 内部
-        // 按 segment 变化判定触发,不会每次 decrypt 重设。
-        uint32_t rep_id = 0;
-        if(rep)
+        // rep_id 整个 segment 不变,首次解析后缓存,避免每次 decrypt 都
+        // rep->getID().str() + strtoul(热路径字符串构造)。
+        if(!rep_id_cached_)
         {
-            const std::string idstr = rep->getID().str();
-            rep_id = static_cast<uint32_t>(strtoul(idstr.c_str(), nullptr, 10));
+            if(rep)
+            {
+                const std::string idstr = rep->getID().str();
+                cached_rep_id_ = static_cast<uint32_t>(strtoul(idstr.c_str(), nullptr, 10));
+            }
+            rep_id_cached_ = true;
         }
-        encryptionSession->setSegmentContext(rep_id, (uint64_t)segment_index);
+        encryptionSession->setSegmentContext(cached_rep_id_, (uint64_t)segment_index);
 
         bool b_last = isEmpty();
         p_block->i_buffer = encryptionSession->decrypt(p_block->p_buffer,

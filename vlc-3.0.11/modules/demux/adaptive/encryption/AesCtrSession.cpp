@@ -154,6 +154,10 @@ void AesCtrSession::close()
     handle_open_       = false;
     bound_rep_id_      = 0xFFFFFFFF;
     bound_seq_         = 0xFFFFFFFFFFFFFFFFULL;
+    /* 安全:清零派生密钥材料,避免内存残留。 */
+    memset(v2_A_, 0, sizeof(v2_A_));
+    memset(v2_B_, 0, sizeof(v2_B_));
+    memset(v2_C_, 0, sizeof(v2_C_));
 }
 
 size_t AesCtrSession::decrypt(void *data, size_t len, bool last)
