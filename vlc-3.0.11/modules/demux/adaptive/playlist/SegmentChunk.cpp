@@ -29,6 +29,7 @@
 #include <vlc_block.h>
 
 #include <cassert>
+#include <cstdlib>
 
 using namespace adaptive::playlist;
 using namespace adaptive::encryption;
@@ -52,6 +53,19 @@ bool SegmentChunk::decrypt(block_t **pp_block)
 
     if(encryptionSession)
     {
+        // 阶段 C v2:把当前 segment 上下文(rep_id + 序号)设给 session,
+        // 供 per-segment IV 派生。rep_id 取 Representation 的 id 字符串转整数
+        // (MPD 里 id="0"/"1");session 不需要时(v1/AES_128)基类空实现忽略。
+        // setSegmentContext 本身只存值(廉价),真正的 setctr 由 session 内部
+        // 按 segment 变化判定触发,不会每次 decrypt 重设。
+        uint32_t rep_id = 0;
+        if(rep)
+        {
+            const std::string idstr = rep->getID().str();
+            rep_id = static_cast<uint32_t>(strtoul(idstr.c_str(), nullptr, 10));
+        }
+        encryptionSession->setSegmentContext(rep_id, (uint64_t)segment_index);
+
         bool b_last = isEmpty();
         p_block->i_buffer = encryptionSession->decrypt(p_block->p_buffer,
                                                        p_block->i_buffer, b_last);

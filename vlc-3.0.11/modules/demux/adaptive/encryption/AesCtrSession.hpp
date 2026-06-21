@@ -45,6 +45,9 @@ namespace adaptive
             void   close() override;
             size_t decrypt(void *data, size_t len, bool last) override;
 
+            /* 阶段 C v2:接收 SegmentChunk 设来的 rep_id/segment_seq,用于 per-seg IV 派生。 */
+            void   setSegmentContext(uint32_t rep_id, uint64_t segment_seq) override;
+
             /* 测试 / 未来扩展用:替换 key 来源。必须在 start() 之前调。 */
             void SetKeyProvider(std::unique_ptr<IKeyProvider> p);
 
@@ -60,9 +63,29 @@ namespace adaptive
              * cpp 里 reinterpret_cast 成具体类型。 */
             void     *cipher_ctx_    = nullptr;
 
+            /* v2:每 segment 上下文(setSegmentContext 设入)。 */
+            uint32_t  cur_rep_id_    = 0;
+            uint64_t  cur_seq_       = 0;
+            bool      ctx_set_       = false;
+
+            /* v2:CTR handle 当前绑定的 segment。同一 segment 多次 decrypt 调用
+             * 共享 handle 状态(gcrypt 自动推进 counter);仅当 segment 变化时
+             * 才 setctr + setkey。避免每次 decrypt setctr 重置 counter 导致解密错位。 */
+            uint32_t  bound_rep_id_  = 0xFFFFFFFF;
+            uint64_t  bound_seq_     = 0xFFFFFFFFFFFFFFFFULL;
+            bool      handle_open_   = false;
+
+            /* v2 派生材料(每视频一次,start_v2 算好缓存,避免每 segment 重算)。 */
+            uint8_t   v2_A_[16];        /* 课程密钥(从 IKeyProvider 拿) */
+            uint8_t   v2_B_[16];        /* 视频密钥(解 KeyBlob 得) */
+            uint8_t   v2_C_[16];        /* C = HMAC(A, B),内容密钥 */
+            bool      v2_material_ready_ = false;
+
             /* 版本分发 */
             bool   start_v1(const CommonEncryption &enc);
             size_t decrypt_v1(void *data, size_t len);
+            bool   start_v2(const CommonEncryption &enc);
+            size_t decrypt_v2(void *data, size_t len);
         };
     }
 }

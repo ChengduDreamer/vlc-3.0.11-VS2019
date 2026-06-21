@@ -159,6 +159,7 @@ SegmentChunk* ISegment::toChunk(SharedResources *res, AbstractConnectionManager 
         if(chunk)
         {
             chunk->discontinuity = discontinuity;
+            chunk->setSegmentIndex(index);   // 阶段 C v2:供 per-seg IV 派生
             if(!prepareChunk(res, chunk, rep))
             {
                 delete chunk;

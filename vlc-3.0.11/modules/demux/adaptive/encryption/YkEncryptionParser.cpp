@@ -166,14 +166,31 @@ YkParseResult YkEncryptionParser::ParseFromContentProtection(const Node *cp_node
             return YkParseResult::InvalidIv;
     }
 
+    /* 4b. v2 字段:CourseId + KeyBlob。
+     *    v1 不写这俩(留空);v2 ivScheme="derived" 时无 <yk:IV>,改有 <yk:KeyBlob>。
+     *    KeyBlob = Enc_A(B) 的 hex,播放器用 A 做 AES-128-ECB 单块解密得 B。
+     *    CourseId 是课程标识(非机密),播放器据此向后台请求该课程的 A/K_idx。 */
+    std::string course_id = GetChildText(enc_node, "yk:CourseId");
+    if (course_id.empty()) course_id = GetChildText(cp_node, "yk:CourseId");
+
+    std::string key_blob_hex = GetChildText(enc_node, "yk:KeyBlob");
+    if (key_blob_hex.empty()) key_blob_hex = GetChildText(cp_node, "yk:KeyBlob");
+    std::vector<unsigned char> key_blob;
+    if (!key_blob_hex.empty()) {
+        if (!DecodeHex(key_blob_hex, key_blob))
+            return YkParseResult::InvalidIv;  /* 复用"解码失败"诊断码 */
+    }
+
     /* 5. 写回 enc */
     enc.method       = method;
     enc.algo_version = algo_version;
     enc.keyid        = keyid;
-    enc.iv           = iv_bytes;       /* v1 单 IV;v2+ 视 ivScheme 而定 */
+    enc.iv           = iv_bytes;       /* v1 单 IV;v2 ivScheme=derived 时为空 */
     enc.key_derive   = key_derive;
     enc.iv_scheme    = iv_scheme;
-    /* license_blob / aad / kdf_* 等预留字段 v1 不读,留空。 */
+    enc.course_id    = course_id;      /* v2 */
+    enc.key_blob     = key_blob;       /* v2:Enc_A(B) */
+    /* license_blob / aad / kdf_* 等预留字段 v1/v2 不读,留空。 */
 
     return YkParseResult::Ok;
 }

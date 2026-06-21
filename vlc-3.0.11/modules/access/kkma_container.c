@@ -32,8 +32,10 @@
 #  define ftello _ftelli64
 #endif
 
-#define KKMA_HEADER_SIZE 20  /* 4 magic + 4 version + 8 index_offset + 4 count */
+#define KKMA_HEADER_SIZE_V1 20  /* 4 magic + 4 version + 8 index_offset + 4 count */
+#define KKMA_HEADER_SIZE_V2 24  /* v1 + 4 idx_size */
 #define KKMA_VERSION_V1  1
+#define KKMA_VERSION_V2  2
 
 struct kkma_container
 {
@@ -42,6 +44,9 @@ struct kkma_container
     uint64_t      index_offset;
     uint32_t      entry_count;
     kkma_entry_t *entries;     /* 长度 = entry_count */
+
+    /* v2:media.idx 区大小(紧跟 Header)。v1 为 0。 */
+    uint32_t      idx_size;
 
     /* 性能优化:adaptive 顺序读 segment 时,连续 kkma_read_entry 调用之间
      * 文件位置已经对齐,不需要 fseek。这个字段记 fp 当前真实位置,
@@ -109,9 +114,14 @@ static bool parse_header(kkma_container_t *c, const char **err)
         if (err) *err = "kkma: short header";
         return false;
     }
-    if (c->version != KKMA_VERSION_V1) {
-        /* 阶段 A 只接受 v1。v2 在阶段 C 引入,届时按 version 分支扩展。 */
-        if (err) *err = "kkma: unsupported version (only v1 supported in stage A)";
+    if (c->version == KKMA_VERSION_V2) {
+        /* v2 多一个 idx_size 字段;media.idx 区紧跟 Header(24B)。 */
+        if (!read_u32_le(c->fp, &c->idx_size)) {
+            if (err) *err = "kkma: short v2 header";
+            return false;
+        }
+    } else if (c->version != KKMA_VERSION_V1) {
+        if (err) *err = "kkma: unsupported version";
         return false;
     }
     return true;
@@ -237,6 +247,37 @@ int64_t kkma_read_entry(kkma_container_t *c, const kkma_entry_t *entry,
         c->fp_pos = want_abs;
     }
 
+    size_t got = fread(buf, 1, to_read, c->fp);
+    if (got == 0 && ferror(c->fp))
+        return -1;
+    c->fp_pos += (int64_t)got;
+    return (int64_t)got;
+}
+
+/* ---- 阶段 C v2:media.idx 区访问 ---- */
+
+uint32_t kkma_container_version(const kkma_container_t *c)
+{
+    return c ? c->version : 0;
+}
+
+uint32_t kkma_media_index_size(const kkma_container_t *c)
+{
+    /* v1 容器 idx_size 为 0(未初始化也是 0,calloc 保证) */
+    return c ? c->idx_size : 0;
+}
+
+int64_t kkma_read_media_index(kkma_container_t *c, void *buf, size_t buf_cap)
+{
+    if (!c || !buf) return -1;
+    if (c->version != KKMA_VERSION_V2 || c->idx_size == 0) return 0;
+
+    /* media.idx 紧跟 Header(24B) */
+    if (fseeko(c->fp, (int64_t)KKMA_HEADER_SIZE_V2, SEEK_SET) != 0)
+        return -1;
+    c->fp_pos = (int64_t)KKMA_HEADER_SIZE_V2;
+
+    size_t to_read = (buf_cap < c->idx_size) ? buf_cap : c->idx_size;
     size_t got = fread(buf, 1, to_read, c->fp);
     if (got == 0 && ferror(c->fp))
         return -1;

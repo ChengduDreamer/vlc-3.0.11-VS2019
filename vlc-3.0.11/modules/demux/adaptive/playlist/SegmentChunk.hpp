@@ -47,11 +47,16 @@ namespace adaptive
             StreamFormat getStreamFormat() const;
             bool discontinuity;
 
+            // 阶段 C v2:记录当前 segment 的序号(来自 ISegment::toChunk 的 index),
+            // decrypt 前会连同 rep_id 设给 session,供 per-segment IV 派生。
+            void         setSegmentIndex(size_t idx) { segment_index = idx; }
+
         protected:
             bool         decrypt(block_t **);
             virtual void onDownload(block_t **); /* impl */
             BaseRepresentation *rep;
             CommonEncryptionSession *encryptionSession;
+            size_t       segment_index = 0;
         };
 
     }

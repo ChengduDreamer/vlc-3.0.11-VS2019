@@ -69,6 +69,15 @@ namespace adaptive
                 std::vector<unsigned char> aad;
                 std::vector<unsigned char> kdf_salt;
                 uint32_t kdf_iters = 0;
+
+                // ---- 阶段 C v2 字段(yk-aes-ctr:2 用) ----
+                // course_id:课程标识,播放器据此向后台请求该课程的 A/K_idx。
+                //   来自 MPD <yk:CourseId>。非机密(学员本就知道在看哪门课)。
+                std::string course_id;
+                // key_blob:Enc_A(B) 密文,来自 MPD <yk:KeyBlob>(hex)。
+                //   播放器用 A 做 AES-128-ECB 单块解密得 B,再 C=HMAC(A,B)。
+                //   v1 不填(空)。
+                std::vector<unsigned char> key_blob;
         };
 
         class CommonEncryptionSession
@@ -80,6 +89,11 @@ namespace adaptive
                 virtual bool start(SharedResources *, const CommonEncryption &);
                 virtual void close();
                 virtual size_t decrypt(void *, size_t, bool);
+
+                // 阶段 C v2:设置当前 segment 上下文(rep_id + segment_seq),
+                // 供 per-segment IV 派生用。基类默认空实现(v1 不需要)。
+                // SegmentChunk::decrypt() 在调 decrypt() 前会调一次。
+                virtual void setSegmentContext(uint32_t rep_id, uint64_t segment_seq);
 
             private:
                 std::vector<unsigned char> key;

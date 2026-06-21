@@ -77,6 +77,20 @@ const kkma_entry_t *kkma_find(const kkma_container_t *c, const char *name);
 int64_t kkma_read_entry(kkma_container_t *c, const kkma_entry_t *entry,
                         uint64_t pos, void *buf, size_t want_len);
 
+/*
+ * 阶段 C v2:读取容器版本。返回 1 或 2(v1 容器返回 1)。
+ */
+uint32_t kkma_container_version(const kkma_container_t *c);
+
+/*
+ * 阶段 C v2:读取 media.idx 区(紧跟 Header)。
+ * 仅 v2 容器有效;v1 返回 0。
+ * buf 由调用方分配,容量 >= idx_size;返回实际读取字节数,负数表示错误。
+ * 调用方应先调 kkma_media_index_size() 获取长度再分配 buf。
+ */
+uint32_t kkma_media_index_size(const kkma_container_t *c);
+int64_t  kkma_read_media_index(kkma_container_t *c, void *buf, size_t buf_cap);
+
 #ifdef __cplusplus
 }
 #endif

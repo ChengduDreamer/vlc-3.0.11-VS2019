@@ -72,6 +72,11 @@ void CommonEncryption::mergeWith(const CommonEncryption &other)
         kdf_salt = other.kdf_salt;
     if(kdf_iters == 0 && other.kdf_iters != 0)
         kdf_iters = other.kdf_iters;
+    // 阶段 C v2 字段
+    if(course_id.empty() && !other.course_id.empty())
+        course_id = other.course_id;
+    if(key_blob.empty() && !other.key_blob.empty())
+        key_blob = other.key_blob;
 }
 
 CommonEncryptionSession::CommonEncryptionSession()
@@ -165,7 +170,11 @@ size_t CommonEncryptionSession::decrypt(void *inputdata, size_t inputbytes, bool
     return inputbytes;
 }
 
-
+// 阶段 C v2:基类默认空实现。需要 per-segment IV 的 session(AesCtrSession v2)
+// 覆盖此方法缓存 rep_id/segment_seq。v1 及 AES_128 不需要,忽略调用。
+void CommonEncryptionSession::setSegmentContext(uint32_t, uint64_t)
+{
+}
 
 YKChacha20EncryptionSession::YKChacha20EncryptionSession()
 {
