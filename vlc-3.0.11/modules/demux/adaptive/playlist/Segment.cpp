@@ -159,7 +159,15 @@ SegmentChunk* ISegment::toChunk(SharedResources *res, AbstractConnectionManager 
         if(chunk)
         {
             chunk->discontinuity = discontinuity;
-            chunk->setSegmentIndex(index);   // 阶段 C v2:供 per-seg IV 派生
+            // 阶段 C v2:供 per-segment IV 派生。
+            // init segment 没有 segment number 概念,加密器约定用 seq=0 加密 init
+            // (见 EncryptPipeline / test_kkma_packer_v2_plain 的 ParseSegmentMeta:
+            //  init_*.mp4 → seg=0)。VLC 对 init segment 的 toChunk 传入的 index 是
+            // 当前 media segment 的 number(非 0),会导致 IV 派生不一致 → init 解密
+            // 失败。这里对 InitSegment 强制用 0,与加密器对齐。
+            const size_t iv_seq = (getClassId() == InitSegment::CLASSID_INITSEGMENT)
+                                  ? 0 : index;
+            chunk->setSegmentIndex(iv_seq);
             if(!prepareChunk(res, chunk, rep))
             {
                 delete chunk;
