@@ -30,6 +30,23 @@
 extern "C" {
 # endif
 
+/* MSVC 没有 POSIX ssize_t —— 补一个,与官方 VLC 3.0.21+ 的 SDK header 一致。
+ * 不加这段的话,本头被外部(非 VLC 本工程)include 时 line 368 的
+ * `typedef ssize_t (*libvlc_media_read_cb)(...)` 会编不过。
+ *
+ * 但 VLC 内部 build 的 include path 里有 `include/mingw32/sys/types.h`,
+ * mingw 的兼容头会 `typedef long _ssize_t; typedef _ssize_t ssize_t;`
+ * 并用 `_SSIZE_T_` 做 header guard。我们这里跟它对齐:
+ *   - 只有当 `_SSIZE_T_` 未定义时才 typedef,避免重复定义
+ *   - 用同一个 `_SSIZE_T_` 宏名,后续 mingw 头也会 skip
+ *   - 类型选 `SSIZE_T`(64-bit = __int64),跟外部消费者(player vlc_player.h)
+ *     用的 `typedef SSIZE_T ssize_t` 完全一致 */
+#if defined(_MSC_VER) && !defined(_SSIZE_T_)
+#define _SSIZE_T_
+#include <basetsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 /** \defgroup libvlc_media LibVLC media
  * \ingroup libvlc
  * @ref libvlc_media_t is an abstract representation of a playable media.
